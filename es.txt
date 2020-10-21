@@ -1,0 +1,350 @@
+ELASTIC SEARCH:
+NoSQL database, based on LUCENE Engine, built with REST API and Highly distrbuted, realtime seach and analytic engine.
+
+Advantages:
+Fast searching.
+Highly scalable.
+
+CHECK IF SERVER IS RUNNING
+curl -v http://localhost:9200/?pretty 
+
+CREATE INDEX
+curl -XPUT http://localhost:9200/<index_name>
+
+TO INSERT DATA IN DATABASE
+curl -XPUT -H "Content-Type: application/json" http://localhost:9200/demo/demoType/1/ -d '{"title":"asdf"}'
+
+TO UPDATE DATA IN DATABASE
+curl -XPOST -H "Content-Type:application/json" http://localhost:9200/demo/demoType/1/_update/?pretty -d '{"doc": {"title":"asddf"}}'
+
+TO GET ALL THE INDEX
+GET /_cat/indices
+
+DELETE INDEX
+DELETE /d1
+
+CREATE INDEX
+PUT /d1
+
+GET ALL DATA
+GET /demo/_search
+
+STRUCTURE OF INDEX OR GET MAPPING
+GET /demo/_mapping
+
+
+SORT DATA (text)
+GET /demo/_search 
+{
+  "query":{
+    "match_all":{}
+  },"sort": [
+    {"message.keyword":"asc"}
+  ]
+}
+
+GET /demo/_search (numbers) 
+{
+  "query":{
+    "match_all":{}
+  },"sort": [
+    {"message":"asc"}
+  ]
+}
+
+GET MATCHING FIELD DATA
+GET /demo/_search
+{
+  "query": {
+    "match": {
+      "message": "SADasd"
+    }
+  }
+}
+
+CREATING MANUAL MAPPINGPUT /ecommerce
+PUT /ecommerce
+{
+  "mappings": { 
+    "properties":{
+      "name": {"type":"text"},
+      "price":  {"type":"integer"},
+      "description":  {"type":"keyword"},
+      "status": {"type":"keyword"},
+      "quantity": {"type":"integer"},
+      "tags": {"type":"keyword"}
+    }
+  }
+}
+
+INSERTING ONTO ecommerce INDEz
+POST /ecommerce/_doc
+{
+  "name":"asd",
+  "description":"asasdsadsadsadasddas",
+  "price":200,
+  "quantity":500,
+  "status":"Aavilable",
+  "tags":"demo"
+}
+
+SEARCH
+MATCH
+GET /bank/_search 
+{
+  "query":{
+    "match":{
+      "firstname":"Fulton"
+    }
+  }
+}
+
+MATCH_ALL, SORT, FROM
+GET /bank/_search
+{
+  "query": {
+    "match_all": {}
+  },"sort": [
+    {
+      "account_number": {
+        "order": "desc"
+      }
+    }
+  ],"size": 20,
+    "from": 980
+}
+
+SIMPLE SEARCH USING QUERY PARAMS
+GET bank/_search?q=balance:39225
+
+AGGREGATION - SUM
+GET bank/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "aggs": {
+    "total_balance": {
+      "sum": {
+        "field": "balance"
+      }
+    }
+  },"size": 0
+}
+
+AGGREGATION ALL STATS - MIN, MAX, SUM, COUNT, AVERAGE
+GET bank/_search
+{
+  "aggs": {
+    "all_stats": {
+      "stats": {
+        "field": "balance"
+      }
+    }
+  }, "size":0
+}
+
+RANGE
+GET bank/_search
+{
+  "query": {
+    "range": {
+      "balance": {
+        "gte": 30000,
+        "lte": 40000
+      }
+    }
+  }
+}
+
+COPYING FROM ONE INDEX TO ANTOHER 
+POST _reindex
+{
+  "source": {
+    "index": "bank"
+  },
+  "dest": {
+    "index": "bank1"
+  }
+}
+
+GETTING VALUES FROM MULTIPLE INDEXES
+GET /_mget
+{
+  "docs":[
+    {
+    "_index":"bank",
+    "_id":"1"
+    },
+    {
+    "_index":"bank1",
+    "_id":"1"
+    }
+  ]
+}
+
+GET MAPPING OF BANK 
+GET /bank/_mapping
+
+MATCH - matches substring eg. Llama, lane, Llama lane
+GET bank/_search
+{
+  "query": {
+    "match": {
+      "address": "Llama lane"
+    }
+  }
+}
+
+
+MATCH_PHRASE - matches exact phrase
+GET bank/_search
+{
+  "query": {
+    "match_phrase": {
+      "address": "Metropolitan Avenue"
+    }
+  }
+}
+
+MATCH_PHRASE_PREFIX - matches as prefix Eg. do -> dog, done, dont
+GET bank/_search
+{
+  "query": {
+    "match_phrase_prefix": {
+      "email": "deidrethompson@"
+    }
+  }
+}
+
+MULTI_MATCH - match same value for multiple fields
+GET bank/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "40", 
+      "fields": ["account_number", "age"]
+    }
+  }
+}
+
+TERMS - act as a group by
+// GROUP BY gender ORDER BY average balance
+GET bank/_search
+{
+  "aggs": {
+    "group_by_gender": {
+      "terms": {
+        "field": "gender.keyword", // KEYWORD - takees whole string, TEXT - breaks string into tokens 
+        "order": {
+          "avg_balance": "asc"
+        }
+      },
+    "aggs":{
+      "avg_balance":{
+        "avg": {
+          "field": "balance"
+        }
+      }
+    }
+    }
+  },"size":0
+}
+
+CARDINALITY - distinct
+GET bank/_search
+{
+  "aggs": {
+    "distinct_gender": {
+      "cardinality": {
+        "field": "gender.keyword"
+      }
+    }
+  }
+}
+
+
+COMPOUND QUERY (BOOL) - 
+1. MUST
+2. SHOULD
+3. FILTER
+4.MUST NOT
+
+GET bank/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "query_string": {
+            "fields": ["address"], 
+            "query": " (Madison OR Bristol) AND Street"
+          }
+        }
+      ],
+      "should": [
+        {
+          "match": {
+            "address": "madison"
+          }
+        }
+      ]
+    }
+  }
+}
+
+GET bank/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            "age": "40"
+          }
+        } 
+      ], 
+      "must_not": [
+        {
+          "match": {
+          "gender": "M"
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+QUERY_STRING - matches exact string proived in field
+1. DEFAULT_FIELD = "_all" (can change)
+2. FIELDS = ["fields", "name"] (Boosts relevance score)
+3. QUERY - <simple_query>, <field:type>, + to include, - to exclude, ^ to boost relevance   
+
+GET bank/_search
+{
+  "query": {
+    "query_string": {
+      "default_field": "address",
+      "query": "(+Madison AND -Bristol) AND Street"
+    }
+  }
+}
+
+GET bank/_search
+{
+  "query": {
+    "query_string": {
+      "query": "+address:Street -firstname:Nanette"
+    }
+  }
+}
+
+GET bank/_search
+{
+  "query": {
+    "query_string": {
+      "query": "(address:Madison^2 OR address:Bristol) AND address:Street"
+    }
+  }
+}
