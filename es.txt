@@ -348,3 +348,100 @@ GET bank/_search
     }
   }
 }
+
+Analyzer
+1. Standard - considers whole word eg. fox's and seperates on basis of whitespace and special characters
+              also decapitalizes each letter and also removes special characters.
+              configurations - stopword
+2. Whitespace -  seperates on the basis of whitespace and rest will reamain the same 
+3. Simple -  same as standard but doesnt consider case like fo  x's, will seperates fox and s and ignore number
+4. Keyword - 
+              configurations - stopword, Pattern, lowecase 
+5. Stop
+6. Pattern
+7. Custom
+GET _analyze
+{
+  "analyzer": "standard",
+  "text": "quick ro_wn fox's @@over the--re"
+}
+
+NESTED
+GET zzz/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 0,
+  "aggs": {
+    "nested_aggs": {
+      "nested": {
+        "path": "pno"
+      },
+      "aggs": {
+        "summation": {
+          "stats": {
+            "field": "pno.nested.pno1"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+PUT smiley
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "emoji_generator":{
+          "type":"custom",
+          "char_filter":[
+            "replace_with_emoji"
+            ],
+            "tokenizer":"standard",
+            "filter":[
+              "lowercase"]
+        }
+      },"char_filter": {
+        "replace_with_emoji":{
+          "type":"mapping",
+          "mappings":[
+            ":) => happy",
+            ":( => sad"
+            ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "mood":{
+        "type": "text",
+        "fields": {
+          "keyword": {
+          "type":"keyword"
+        }
+        },
+        "analyzer": "emoji_generator"
+      }
+    }
+  }
+}
+
+DELETE smiley
+
+POST smiley/_doc
+{
+  "mood":"happy"
+}
+
+POST smiley/_doc
+{
+  "mood":":)"
+}
+
+GET smiley/_search?q=mood:"happy"
+
